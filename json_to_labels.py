@@ -11,7 +11,7 @@ if __name__ == '__main__':
     """
     # segmentation labels
     group = 15
-    RePAIR_dataset = "/Users/Palma/Documents/Projects/Unive/RePAIR/Datasets/RePAIR_dataset"
+    RePAIR_dataset = "/home/palma/Unive/RePAIR/Datasets/RePAIR_dataset"
     group_folder = os.path.join(RePAIR_dataset, f"group_{group}")
     processed_folder = os.path.join(group_folder, "processed")
     labeled_folder = os.path.join(group_folder, "labeled")
@@ -32,7 +32,6 @@ if __name__ == '__main__':
             # read original pcl
             orig_path = os.path.join(processed_folder, f"{rpf_name}.ply")
             orig_pcl = o3d.io.read_point_cloud(orig_path)
-            assert(len(orig_pcl.points) == len(s_labels)), "problem"
-            labels_path = orig_path.replace(
-                'processed', 'labels').replace('ply', 'txt')
+            assert(len(orig_pcl.points) == len(s_labels)), "pointcloud and labels not matching!"
+            labels_path = os.path.join(labels_folder, f"{rpf_name}.txt")
             np.savetxt(labels_path, s_labels, fmt='%d')
