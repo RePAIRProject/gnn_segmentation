@@ -7,7 +7,7 @@ Labels are obtained from segments.ai labeling tools.
 
 The code is in `node_classification_gnn.py`. Dataset root folder has to be changed (line 116) and the other files (processed pointclouds) are assumed to be in the folder structure described in the deliverable.
 
-#### Results
+### Results on binary segmentation
 A first run has been made on 6 fragments of group 15.
 Results are good, but not enough data to guarantee that results are actually significant.
 Plus all 6 pointclouds were labeled from a single person, introducing some bias on the labels.
@@ -27,7 +27,8 @@ To have an idea about the task, we have computed results using a simple baseline
 We take inspiration from the paper *Reassembling fractured objects by geometric matching*, Huang et al. Siggraph 2006 and use the Eq (5) of that paper to compute surface roughness, then we can classify the points as belonging to intact or broken surface based on that value.
 
 The code is in `node_classification_geometric.py`.
-Even such simple metrics yield okay results, giving us a hint about the difficulty of the task in general:
+Please note that the labels were done by hand and 'seen' for the training, but they do not necessarily respect the geometrical classification we are doing here, so there is a slight bias in favour of the neural network when evaluating using these labels.
+However, even such simple metrics yield okay results, giving us a hint about the difficulty of the task in general (this may change when we move to multi-label classification, even distinguishing bottom to top may be harder for the geometrical approach):
 
 | Fragment | Accuracy | Acc. Intact | Acc. Broken |
 |:--------:|:--------:|:-----------:|:-----------:|
@@ -36,6 +37,7 @@ Even such simple metrics yield okay results, giving us a hint about the difficul
 | RPf_0094 | 0.87539 | 0.85453 | 0.91485 |
 | RPf_0094 | 0.88248 | 0.89254 | 0.84695 |
 
+These results were obtained using default values (50 neighbours for roughness computations).
 Here averaged is on the three files ("RPf_00097","RPf_00094","RPf_00103") used also in the "test" set, so the comparison is on the same fragments.
 
 ## Weak supervised segmentation
