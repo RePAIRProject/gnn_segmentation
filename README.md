@@ -1,6 +1,17 @@
 # gnn_segmentation
 A first attempt at using GNN (in particular using the GCN layers) to segment fragments.
 
+## Installation 
+Required:
+```
+pytorch
+pytorch_geometric
+numpy
+matplotlib
+open3d
+sklearn
+```
+
 ## Node Classification using GCN
 Started using GCN layers for a supervised task.
 Labels are obtained from segments.ai labeling tools.

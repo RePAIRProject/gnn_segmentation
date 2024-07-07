@@ -54,6 +54,7 @@ def train_with_loader(train_loader):
 
     for data in train_loader:  # Iterate in batches over the training dataset.
          data.to(device)
+         #breakpoint()
          out = model(data.x, data.edge_index)  # Perform a single forward pass.
          loss = criterion(out, data.y)  # Compute the loss.
          loss.backward()  # Derive gradients.
@@ -166,6 +167,7 @@ def prepare_dataset():
             dataset.append(data)
             pcls.append(orig_pcl)
             names.append(rpf_name)
+            breakpoint()
     return dataset, pcls, names
 
 
@@ -178,16 +180,20 @@ def show_results(pred, pcl):
 
 if __name__ == '__main__':
 
+    #breakpoint()
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     print(device)
-    #pdb.set_trace()
+    #breakpoint()
+    from dataset import prepare_dataset_detection
+    dataset = prepare_dataset_detection('/home/palma/Datasets/3D_detection_moving_camera')
+    # breakpoint()
     # get the 6 labeled pcls as graph (pytorch data object)
-    dataset, pcls, names = prepare_dataset()
+    #dataset, pcls, names = prepare_dataset()
 
     # prepare the model
-    input_features = 6
+    input_features = 3
     hidden_channels = 32
-    output_classes = 2
+    output_classes = 15
     print(f"GCN Model with: \
           {input_features} input features, \
           {hidden_channels} hidden_channels and \
@@ -208,7 +214,7 @@ if __name__ == '__main__':
     criterion = torch.nn.CrossEntropyLoss()
 
     print("start training..")
-    EPOCHS = 1201
+    EPOCHS = 20
     test_acc = 0.0
     acc_intact = 0.0
     acc_broken = 0.0
@@ -216,17 +222,18 @@ if __name__ == '__main__':
     train_test_split = 3
     train_dataset = dataset[:train_test_split]
     test_dataset = dataset[train_test_split:]
-    train_files = names[:train_test_split]
-    test_files = names[train_test_split:]
+    # train_files = names[:train_test_split]
+    # test_files = names[train_test_split:]
     train_loader = DataLoader(train_dataset, shuffle=True)
     test_loader = DataLoader(test_dataset, shuffle=False)
 
     for epoch in range(1, EPOCHS):
         loss = train_with_loader(train_loader)
+        print(loss.item())
         if epoch % 10 == 0:
             #pdb.set_trace()
             print(f'Epoch: {epoch:03d}, Loss: {loss:.4f}')
-        if epoch % 100 == 0:
+        if epoch > 0 and epoch % 100 == 0:
             #pdb.set_trace()
             train_avg_correct_points, train_acc_areas, train_acc_ratio = test_with_loader(train_loader)
             test_avg_correct_points, test_acc_areas, test_acc_ratio = test_with_loader(test_loader)
@@ -242,18 +249,18 @@ if __name__ == '__main__':
             'acc_ratio': train_acc_ratio,
             'acc_intact': train_acc_areas[0],
             'acc_broken': train_acc_areas[1],
-            'files': train_files
+            # 'files': train_files
         },
         'test': {
             'acc_ratio': test_acc_ratio,
             'acc_intact': test_acc_areas[0],
             'acc_broken': test_acc_areas[1],
-            'files': test_files
+            # 'files': test_files
         },
         'epochs': EPOCHS,
         'device': str(device)
     }
-    output_folder = os.path.join(os.getcwd(), 'results_classification')
+    output_folder = os.path.join(os.getcwd(), 'results_detection')
     if not os.path.exists(output_folder):
         os.mkdir(output_folder)
     with open(os.path.join(output_folder,
