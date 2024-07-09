@@ -8,6 +8,7 @@ import os, json
 import open3d as o3d 
 import numpy as np 
 import yaml 
+import shutil 
 
 if __name__ == '__main__':
 
@@ -87,12 +88,15 @@ if __name__ == '__main__':
 
     torch.save(model.state_dict(), os.path.join(cfg['models_path'], f"{model_name}_loss{cfg['loss']}_{EPOCHS}epochs.pth"))
     shutil.copy('config.yaml', os.path.join(cfg['models_path'], f"{model_name}_loss{cfg['loss']}_{EPOCHS}epochs_config.yaml"))
-    print('saved')
+    print(f"saved {model_name}_loss{cfg['loss']}_{EPOCHS}epochs")
+    print(f"For inference, run\n")
+    print(f"python inference_fragment_detection.py {model_name}_loss{cfg['loss']}_{EPOCHS}epochs\n")
     
     if cfg['show_results'] == True:
+        print(f"showing {cfg['how_many']} results..")
         model.eval()
         
-        for j in range(0, 100, 10):
+        for j in range(0, 100, cfg['how_many']):
             pred = predict(model, dataset[j], device) # pred returned is already .cpy().numpy()
             pcl = o3d.geometry.PointCloud(points=o3d.utility.Vector3dVector(dataset[j].pos.cpu().numpy()))
             show_results(pred, pcl)
