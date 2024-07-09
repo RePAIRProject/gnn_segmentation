@@ -163,11 +163,11 @@ def prepare_dataset():
                         test_mask=torch.tensor(np.ones_like(np.asarray(orig_pcl.points)[:, 0]), dtype=torch.bool))
             # 3. compute edges (T.Knn)
             edge_creator = T.KNNGraph(k=5)
-            edge_creator(data)
+            data = edge_creator(data)
             dataset.append(data)
             pcls.append(orig_pcl)
             names.append(rpf_name)
-            breakpoint()
+            # breakpoint()
     return dataset, pcls, names
 
 
@@ -184,16 +184,16 @@ if __name__ == '__main__':
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     print(device)
     #breakpoint()
-    from dataset import prepare_dataset_detection
-    dataset = prepare_dataset_detection('/home/palma/Datasets/3D_detection_moving_camera')
+    #from dataset import prepare_dataset_detection
+    #dataset = prepare_dataset_detection('/home/palma/Datasets/3D_detection_moving_camera')
     # breakpoint()
     # get the 6 labeled pcls as graph (pytorch data object)
-    #dataset, pcls, names = prepare_dataset()
+    dataset, pcls, names = prepare_dataset()
 
     # prepare the model
-    input_features = 3
+    input_features = 6
     hidden_channels = 32
-    output_classes = 15
+    output_classes = 3
     print(f"GCN Model with: \
           {input_features} input features, \
           {hidden_channels} hidden_channels and \
@@ -214,7 +214,7 @@ if __name__ == '__main__':
     criterion = torch.nn.CrossEntropyLoss()
 
     print("start training..")
-    EPOCHS = 20
+    EPOCHS = 100
     test_acc = 0.0
     acc_intact = 0.0
     acc_broken = 0.0
@@ -226,6 +226,7 @@ if __name__ == '__main__':
     # test_files = names[train_test_split:]
     train_loader = DataLoader(train_dataset, shuffle=True)
     test_loader = DataLoader(test_dataset, shuffle=False)
+    breakpoint()
 
     for epoch in range(1, EPOCHS):
         loss = train_with_loader(train_loader)
@@ -233,7 +234,7 @@ if __name__ == '__main__':
         if epoch % 10 == 0:
             #pdb.set_trace()
             print(f'Epoch: {epoch:03d}, Loss: {loss:.4f}')
-        if epoch > 0 and epoch % 100 == 0:
+        if epoch > 0 and epoch % 50 == 0:
             #pdb.set_trace()
             train_avg_correct_points, train_acc_areas, train_acc_ratio = test_with_loader(train_loader)
             test_avg_correct_points, test_acc_areas, test_acc_ratio = test_with_loader(test_loader)
