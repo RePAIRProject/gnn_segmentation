@@ -1,0 +1,19 @@
+dataset_root: '/media/lucap/big_data/datasets/repair/3D_detection_moving_camera/group_0016'
+models_path: 'checkpoints'
+dataset_max_size: 200
+train_test_split: 0.8
+num_seg_classes: 5
+k: 10
+use_color: True
+input_features: 6
+hidden_channels: 64
+model: "GCN"
+loss: "CROSSENTROPY"
+# training
+epochs: 100
+print_each: 25
+lr: 0.005
+weight_obj: 30
+show_results: True
+continue_training: False
+ckp_path: '' # set if continue == True!

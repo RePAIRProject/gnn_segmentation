@@ -1,53 +1,69 @@
 import torch 
 from dataset import prepare_dataset_detection, dataset_from_pcl
-from net import GAT, GCN_tutorial
+from net import GCN, GAT
 from torch_geometric.loader import DataLoader
 from train_test_util import predict, training_loop_one_epoch, test_with_loader, \
     show_results
 import os, json
 import open3d as o3d 
 import numpy as np 
+import yaml 
 
 if __name__ == '__main__':
 
+    with open('config.yaml', 'r') as yf:
+        cfg = yaml.safe_load(yf)
+
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     print(device)
-    dataset = prepare_dataset_detection('/home/palma/Datasets/3D_detection_fixed_camera/group_0016', \
-         dataset_max_size=5, k=5, use_color=False)
+    dataset = prepare_dataset_detection(root_folder = cfg['dataset_root'], \
+         dataset_max_size=cfg['dataset_max_size'], k=cfg['k'], use_color=cfg['use_color'])
     #breakpoint()
     # dataset = dataset_from_pcl('/home/palma/Datasets/segmented_pcl', \
     #     dataset_max_size=25, k=5)
     # prepare the model
-    input_features = 3
-    hidden_channels = 32
-    output_classes = 8
-    print(f"GCN Model with: \
+    input_features = cfg['input_features']
+    hidden_channels = cfg['hidden_channels']
+    output_classes = cfg['num_seg_classes']
+    model_name = cfg['model']
+    print(f"{model_name} Model with: \
           {input_features} input features, \
           {hidden_channels} hidden_channels and \
           {output_classes} output_classes")
     # 4. create GCN model
-    model = GAT(input_features=input_features,
-                hidden_channels=hidden_channels,
-                output_classes=output_classes)
+    if model_name == 'GAT':
+        model = GAT(input_features=input_features,
+                    hidden_channels=hidden_channels,
+                    output_classes=output_classes)
+    elif model_name == 'GCN':
+        model = GCN(input_features=input_features,
+                    hidden_channels=hidden_channels,
+                    output_classes=output_classes)
+    else:
+        print("WHICH MODEL?")
+
     model.to(device)
 
     optimizer = torch.optim.Adam(
-        model.parameters(), lr=0.01, weight_decay=5e-4)
-    weight = torch.tensor([1, 25, 25, 25, 25, 25, 25, 25], dtype=torch.float32).to(device)
-    criterion = torch.nn.CrossEntropyLoss(weight=weight) #NLLLoss()
+        model.parameters(), lr=cfg['lr'], weight_decay=5e-4)
+    weight = torch.tensor([1, cfg['weight_obj'], cfg['weight_obj'], cfg['weight_obj'], cfg['weight_obj']], dtype=torch.float32).to(device)
+    if cfg['loss'] == "NLL":
+        criterion = torch.nn.NLLLoss(weight=weight) #()
+    else:
+        criterion = torch.nn.CrossEntropyLoss(weight=weight) #NLLLoss()
 
     print("start training..")
-    EPOCHS = 200
+    EPOCHS = cfg['epochs']
     test_acc = 0.0
     acc_intact = 0.0
     acc_broken = 0.0
-
-    train_test_split = 4
+    print(f"Will train for {EPOCHS} epochs")
+    train_test_split = np.round(cfg['dataset_max_size'] * cfg['train_test_split']).astype(int)
     train_dataset = dataset[:train_test_split]
     test_dataset = dataset[train_test_split:]
     # train_files = names[:train_test_split]
     # test_files = names[train_test_split:]
-    train_loader = DataLoader(train_dataset, shuffle=False)
+    train_loader = DataLoader(train_dataset, shuffle=True)
     test_loader = DataLoader(test_dataset, shuffle=False)
     #breakpoint()
 
@@ -65,53 +81,20 @@ if __name__ == '__main__':
 
         # print(loss.item())
 
-        if epoch % 1 == 0:
+        if epoch % cfg['print_each'] == 0:
             #pdb.set_trace()
             print(f'Epoch: {epoch:03d}, Loss: {loss:.4f}')
 
-    #     if epoch > 0 and epoch % 10 == 0:
-    #         #pdb.set_trace()
-    #         train_avg_correct_points, train_acc_areas, train_acc_ratio = test_with_loader(model, device, train_loader)
-    #         test_avg_correct_points, test_acc_areas, test_acc_ratio = test_with_loader(model, device, test_loader)
-    #         print('Training:')
-    #         print(f'average correct points: {train_avg_correct_points:.4f}, accuracy ratio: {train_acc_ratio:.4f}')
-    #         print(f'accuracy on intact surfaces: {train_acc_areas[0]:.4f}, accuracy on broken surfaces: {train_acc_areas[1]:.4f}')
-    #         print('Testing:')
-    #         print(f'average correct points: {test_avg_correct_points:.4f}, accuracy ratio: {test_acc_ratio:.4f}')
-    #         print(f'accuracy on intact surfaces: {test_acc_areas[0]:.4f}, accuracy on broken surfaces: {test_acc_areas[1]:.4f}')
+    torch.save(model.state_dict(), os.path.join(cfg['models_path'], f"{model_name}_loss{cfg['loss']}_{EPOCHS}epochs.pth"))
+    shutil.copy('config.yaml', os.path.join(cfg['models_path'], f"{model_name}_loss{cfg['loss']}_{EPOCHS}epochs_config.yaml"))
+    print('saved')
     
-    # results = {
-    #     'loss': loss.item(),
-    #     'training': {
-    #         'acc_ratio': train_acc_ratio,
-    #         'acc_intact': train_acc_areas[0],
-    #         'acc_broken': train_acc_areas[1],
-    #         # 'files': train_files
-    #     },
-    #     'test': {
-    #         'acc_ratio': test_acc_ratio,
-    #         'acc_intact': test_acc_areas[0],
-    #         'acc_broken': test_acc_areas[1],
-    #         # 'files': test_files
-    #     },
-    #     'epochs': EPOCHS,
-    #     'device': str(device)
-    # }
-    # output_folder = os.path.join(os.getcwd(), 'results_detection')
-    # if not os.path.exists(output_folder):
-    #     os.mkdir(output_folder)
-    # with open(os.path.join(output_folder,
-    #     f"results_after_{epoch}_epochs.json"), 'w') as jf:
-    #     json.dump(results, jf, indent=3)
-    # if test_acc > 0 and acc_broken > 0.5:
-    #     np.savetxt(os.path.join(output_folder,
-    #         f"pred_{rpf_name}_after_{epoch}_epochs.txt"), pred.numpy())
+    if cfg['show_results'] == True:
+        model.eval()
+        
+        for j in range(0, 100, 10):
+            pred = predict(model, dataset[j], device) # pred returned is already .cpy().numpy()
+            pcl = o3d.geometry.PointCloud(points=o3d.utility.Vector3dVector(dataset[j].pos.cpu().numpy()))
+            show_results(pred, pcl)
 
-    model.eval()
-    breakpoint()
-    for j in range(2, 3):
-        pred = predict(model, dataset[j], device) # pred returned is already .cpy().numpy()
-        pcl = o3d.geometry.PointCloud(points=o3d.utility.Vector3dVector(dataset[j].pos.cpu().numpy()))
-        show_results(pred, pcl)
-
-    breakpoint()
+        breakpoint()

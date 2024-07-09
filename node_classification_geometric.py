@@ -67,6 +67,8 @@ if __name__ == '__main__':
         segmented = segment_using_normals(pcl)
         labels = np.loadtxt(os.path.join(labels_folder, f"{rpf_name}.txt"))
         errors = np.abs(segmented-labels)
+        pdb.set_trace()
+        o3d.visualization.draw_geometries([pcl])
         error = np.sum(errors) / len(labels)
         error_intact = np.sum(errors * (labels == 0)) / np.sum(labels==0)
         error_broken = np.sum(errors * (labels == 1)) / np.sum(labels==1)

@@ -19,6 +19,7 @@ def dataset_from_pcl(folder, dataset_max_size=50, k=5, data_max_size=90000):
         y = torch.tensor(y_np*15, dtype=torch.long)
         data = Data(x=pos[:data_max_size], y=y[:data_max_size, 0], pos=pos[:data_max_size], edge_index=None, edge_attr=None)
         # 3. compute edges (T.Knn)
+        breakpoint()
         edge_creator = T.KNNGraph(k=k)
         data = edge_creator(data)
         dataset.append(data)
@@ -37,7 +38,7 @@ def prepare_dataset_detection(root_folder, dataset_max_size=50, k=5, data_max_si
     scenes = scenes[:dataset_max_size]
 
     for scene in scenes:
-        print(f"loading {scene}") #, end='\r')
+        print(f"loading {scene}", end='\r')
         scene_name = scene[:-4]
         pts = torch.tensor(np.loadtxt(os.path.join(points_folder, scene)), dtype=torch.float32)
         if use_color == True:
