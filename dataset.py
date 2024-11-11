@@ -21,12 +21,10 @@ def dataset_binary_pcl_labels(folder, k=25):
         pos_np = np.asarray(pcl.points)
         pos = torch.tensor(pos_np, dtype=torch.float32)
         x = np.zeros((len(np.asarray(pcl.points)), 6))
-        normals = pcl.normals
-        colors = pcl.colors
-        x[0:3] = pos_np
-        x[3:6] = normals
-        x[6:9] = colors
-        xt = torch.tensor(xt, dtype=torch.float32)
+        normals = np.asarray(pcl.normals)
+        x[:, 0:3] = pos_np
+        x[:, 3:6] = normals
+        xt = torch.tensor(x, dtype=torch.float32)
         y_np = np.loadtxt(os.path.join(labels_folder, labels_path))
         if np.min(y_np) == 0:
             y_np[y_np==0] = 1
