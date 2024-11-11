@@ -70,7 +70,7 @@ def predict(model, data, device):
     pred = out.argmax(dim=1)  # Use the class with highest probability.
     return pred.cpu().numpy()
 
-def show_results(pred, pcl):
+def show_results(pred, pcl, window_name="results"):
     cmap = plt.get_cmap('jet').resampled(5)
     #breakpoint()
     #colors = np.zeros((pred.shape[0], 3))
@@ -78,4 +78,4 @@ def show_results(pred, pcl):
     #colors[pred == 0] = [0, 255, 0]
     #colors[pred == 1] = [255, 0, 0]
     pcl.colors = o3d.utility.Vector3dVector(colors[:,:3])
-    o3d.visualization.draw_geometries([pcl])
+    o3d.visualization.draw_geometries([pcl], window_name=window_name)
