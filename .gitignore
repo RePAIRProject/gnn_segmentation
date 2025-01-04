@@ -1,3 +1,5 @@
+checkpoints/*
+data/*
 results_classification/*
 results/*
 

@@ -18,7 +18,11 @@ def pcl_to_tensor(pcl, k):
     return data
 
 def dataset_v3(parameters):
-
+    """
+    It prepares the dataset for recognition 
+    framed as multi-class labeling problem
+    (0 for sand, id for the fragments (1,2,3,..) ) 
+    """
     data_max_size = parameters['dataset_max_size']
     points_folder = os.path.join(parameters['dataset_root'], 'points_as_txt')
     labels_folder = os.path.join(parameters['dataset_root'], 'labels')
@@ -30,28 +34,49 @@ def dataset_v3(parameters):
         print(f"loading {scene}", end='\r')
         scene_name = scene[:-4]
         np_pts = np.loadtxt(os.path.join(points_folder, scene))
-        pts = torch.tensor(np_pts, dtype=torch.float32)
+        if parameters['add_noise'] == True:
+            z_range = np.max(np_pts[:,2]) - np.min(np_pts[:,2])
+            np_pts[:,2] += np.random.uniform(-1,1,np_pts.shape[0]) * parameters['noise_strength'] * z_range
         # breakpoint()
         # pcl = o3d.geometry.PointCloud(points=o3d.utility.Vector3dVector(np_pts[:,:3]))
         # pcl.colors=o3d.utility.Vector3dVector(np_pts[:,3:] / 256)
         np_labels = np.loadtxt(os.path.join(labels_folder, f"{scene_name}_labels.txt"))
+        if parameters['task'] == 'detection':
+            np_labels = (np_labels > 1).astype(int)
         labels = torch.tensor(np_labels, dtype=torch.long)
-        pcl = o3d.geometry.PointCloud(points=o3d.utility.Vector3dVector(np_pts[:,:3]))
+        if parameters['use_normals'] == True:
+            pcl = o3d.geometry.PointCloud(points=o3d.utility.Vector3dVector(np_pts[:,:3]))
+            if parameters['use_normals'] == True:
+                if pcl.has_normals() == False:
+                    pcl.estimate_normals()
+                normals = np.asarray(pcl.normals)                     
+                np_pts = np.concatenate([np_pts, normals], axis=1)
+            
         # breakpoint()
-        labels_as_colors = cm.jet(plt.Normalize(min(np_labels),max(np_labels))(np_labels))
-        pcl.colors=o3d.utility.Vector3dVector(labels_as_colors[:,:3])
-        o3d.visualization.draw_geometries([pcl])
-        breakpoint()
+        # labels_as_colors = cm.jet(plt.Normalize(min(np_labels),max(np_labels))(np_labels))
+        # pcl.colors=o3d.utility.Vector3dVector(labels_as_colors[:,:3])
+        # o3d.visualization.draw_geometries([pcl])
+        # breakpoint()
         # 
         # # print("max", labels.max().item())
         # print("min", labels.min().item())
         # breakpoint()
-        oh_labels = F.one_hot(labels-1, num_classes=6).type(torch.FloatTensor) 
-        x = pts 
+        if parameters['task'] == 'recognition':
+            oh_labels = F.one_hot(labels-1, num_classes=6).type(torch.FloatTensor) 
+         
+        # transform into a torch tensor
+        pts = torch.tensor(np_pts, dtype=torch.float32)
+        x = pts
         if parameters['normalize_color'] == True:
             x[:,3:6] /= 256
         pos = x[:,:3]
-        data = Data(x=x[:], y=oh_labels[:], pos=pos[:], edge_index=None, edge_attr=None)
+        
+        if parameters['task'] == 'detection':
+            y = labels
+        elif parameters['task'] == 'recognition':
+            y = oh_labels
+
+        data = Data(x=x[:], y=y, pos=pos[:], edge_index=None, edge_attr=None)
         # 3. compute edges (T.Knn)
         edge_creator = T.KNNGraph(k=parameters['k'])
         data = edge_creator(data)

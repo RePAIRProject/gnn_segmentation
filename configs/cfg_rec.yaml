@@ -1,0 +1,32 @@
+dataset_root: '/home/palma/repair/sand_scenes/group_0029' #'/media/lucap/big_data/datasets/repair/3D_detection_moving_camera/group_0016'
+models_path: 'checkpoints'
+# TASK 
+task: recognition
+# DATA 
+dataset_max_size: 16
+train_test_split: 0.9
+k: 20
+add_noise: True
+noise_strength: 0.08
+# FEATURES
+use_color: True
+normalize_color: True
+use_normals: True
+# MODEL dimensions
+model: "GCN"
+input_features: 6
+hidden_channels: 64
+num_seg_classes: 6
+# LOSS
+loss: "CAT"
+# training
+epochs: 2
+print_each: 10
+lr: 0.004
+weight_obj: 25
+continue_training: False
+ckp_path: '' # set if continue == True!
+# VIS
+show_results: True
+how_many: 2
+
