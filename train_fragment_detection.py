@@ -1,5 +1,5 @@
 import torch 
-from dataset import prepare_dataset_detection, dataset_from_pcl, dataset_v2, dataset_v3
+from dataset import prepare_dataset_detection, dataset_from_pcl, dataset_binary_pcl_labels, dataset_v2, dataset_v3
 from net import GCN, GAT
 from torch_geometric.loader import DataLoader
 from train_test_util import predict, training_loop_one_epoch, test_with_loader, \
@@ -12,7 +12,8 @@ import shutil
 
 if __name__ == '__main__':
 
-    with open('cfg_v2.yaml', 'r') as yf:
+    cfg_name = 'cfg_rp.yaml'
+    with open(cfg_name, 'r') as yf:
         cfg = yaml.safe_load(yf)
     
     print("#" * 50)
@@ -24,11 +25,11 @@ if __name__ == '__main__':
     
 
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-    print(f"Using {device} to train..")
-    # dataset = prepare_dataset_detection(root_folder = cfg['dataset_root'], \
-    #      dataset_max_size=cfg['dataset_max_size'], k=cfg['k'], use_color=cfg['use_color'])
-    # dataset = dataset_v2(root_folder = cfg['dataset_root'], \
-    #      dataset_max_size=cfg['dataset_max_size'], k=cfg['k'], use_color=cfg['use_color'], normalize_color=cfg['normalize_color'])
+    print("\nDEVICE\n", device)
+    print("\nDATASET")
+    dataset = dataset_binary_pcl_labels(folder = cfg['dataset_root'], k=cfg['k'])
+    # prepare_dataset_detection(root_folder = cfg['dataset_root'], \
+    #       dataset_max_size=cfg['dataset_max_size'], k=cfg['k'], use_color=cfg['use_color'])
     #breakpoint()
     print('reading data..')
     dataset = dataset_detection(cfg)
@@ -59,6 +60,8 @@ if __name__ == '__main__':
 
     model.to(device)
 
+    print("\nMODEL")
+    print(model)
     optimizer = torch.optim.Adam(
         model.parameters(), lr=cfg['lr'], weight_decay=5e-4)
     weight = torch.tensor([cfg['weight_obj']/2, cfg['weight_obj'], cfg['weight_obj'], cfg['weight_obj'], cfg['weight_obj'], cfg['weight_obj']], dtype=torch.float32).to(device)
@@ -67,9 +70,9 @@ if __name__ == '__main__':
     # elif cfg['loss'] == "CAT":
     #     criterion = torch.nn.CategoricalCrossEntropyLoss(weight=weight)
     else:
-        criterion = torch.nn.CrossEntropyLoss(weight=weight) #NLLLoss()
+        criterion = torch.nn.CrossEntropyLoss(weight=weight) #weight=weight) #NLLLoss()
 
-    print("start training..")
+    print("\nTRAINING")
     EPOCHS = cfg['epochs']
     test_acc = 0.0
     acc_intact = 0.0
@@ -92,11 +95,11 @@ if __name__ == '__main__':
         # loss = training_loop_one_epoch(model, train_loader, criterion, optimizer, device)
         for data in train_loader:  # Iterate in batches over the training dataset.
             data.to(device)
-            out = model(data.x, data.edge_index)  # Perform a single forward pass.
-            loss = criterion(out, data.y)  # Compute the loss.
-            loss.backward()  # Derive gradients.
-            optimizer.step()  # Update parameters based on gradients.
-            optimizer.zero_grad()  # Clear gradients.
+            out = model(data.x, data.edge_index)    # Perform a single forward pass.
+            loss = criterion(out, data.y)         # Compute the loss.
+            loss.backward()                         # Derive gradients.
+            optimizer.step()                        # Update parameters based on gradients.
+            optimizer.zero_grad()                   # Clear gradients.
 
         # print(loss.item())
 
@@ -107,20 +110,30 @@ if __name__ == '__main__':
         if loss.item() < best_loss:
             torch.save(model.state_dict(), os.path.join(cfg['models_path'], f"{model_name_save}_BEST.pth"))
 
+    print("\nSAVING")
+    os.makedirs(cfg['models_path'], exist_ok=True)
     base_name = cfg['dataset_root'].split('/')[-1]
     torch.save(model.state_dict(), os.path.join(cfg['models_path'], model_name_save))
     shutil.copy('config.yaml', os.path.join(cfg['models_path'], f"{model_name_save}_config.yaml"))
     print(f"saved {model_name_save}")
     print(f"For inference, run\n")
+
     print(f"python inference_fragment_detection.py {model_name_save}")
     
+
     if cfg['show_results'] == True:
+        print("\nRESULTS")
         print(f"showing {cfg['how_many']} results..")
         model.eval()
         
-        for j in range(0, 100, cfg['how_many']):
+        for j in range(0, len(dataset), np.ceil(len(dataset) / cfg['how_many']).astype(int)):
             pred = predict(model, dataset[j], device) # pred returned is already .cpy().numpy()
             pcl = o3d.geometry.PointCloud(points=o3d.utility.Vector3dVector(dataset[j].pos.cpu().numpy()))
-            show_results(pred, pcl, f"scene_{j}")
+            print('pred')
+            show_results(pred, pcl, window_name="Prediction")
+            print('gt')
+            #breakpoint()
+            labels = (dataset[j].y).cpu().numpy()
+            show_results(labels, pcl, window_name="Ground Truth")
 
             breakpoint()
