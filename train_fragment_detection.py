@@ -1,5 +1,5 @@
 import torch 
-from dataset import prepare_dataset_detection, dataset_from_pcl
+from dataset import prepare_dataset_detection, dataset_from_pcl, dataset_v2, dataset_v3
 from net import GCN, GAT
 from torch_geometric.loader import DataLoader
 from train_test_util import predict, training_loop_one_epoch, test_with_loader, \
@@ -12,17 +12,31 @@ import shutil
 
 if __name__ == '__main__':
 
-    with open('config.yaml', 'r') as yf:
+    with open('cfg_v2.yaml', 'r') as yf:
         cfg = yaml.safe_load(yf)
+    
+    print("#" * 50)
+    print("# PARAMETERS")
+    print("#" * 50)
+    for cfg_key in cfg.keys():
+        print(f"# {cfg_key}:{cfg[cfg_key]}")
+    print("#" * 50)
+    
 
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-    print(device)
-    dataset = prepare_dataset_detection(root_folder = cfg['dataset_root'], \
-         dataset_max_size=cfg['dataset_max_size'], k=cfg['k'], use_color=cfg['use_color'])
+    print(f"Using {device} to train..")
+    # dataset = prepare_dataset_detection(root_folder = cfg['dataset_root'], \
+    #      dataset_max_size=cfg['dataset_max_size'], k=cfg['k'], use_color=cfg['use_color'])
+    # dataset = dataset_v2(root_folder = cfg['dataset_root'], \
+    #      dataset_max_size=cfg['dataset_max_size'], k=cfg['k'], use_color=cfg['use_color'], normalize_color=cfg['normalize_color'])
     #breakpoint()
+    print('reading data..')
+    dataset = dataset_detection(cfg)
+
     # dataset = dataset_from_pcl('/home/palma/Datasets/segmented_pcl', \
     #     dataset_max_size=25, k=5)
     # prepare the model
+    print('model..')
     input_features = cfg['input_features']
     hidden_channels = cfg['hidden_channels']
     output_classes = cfg['num_seg_classes']
@@ -47,9 +61,11 @@ if __name__ == '__main__':
 
     optimizer = torch.optim.Adam(
         model.parameters(), lr=cfg['lr'], weight_decay=5e-4)
-    weight = torch.tensor([1, cfg['weight_obj'], cfg['weight_obj'], cfg['weight_obj'], cfg['weight_obj']], dtype=torch.float32).to(device)
+    weight = torch.tensor([cfg['weight_obj']/2, cfg['weight_obj'], cfg['weight_obj'], cfg['weight_obj'], cfg['weight_obj'], cfg['weight_obj']], dtype=torch.float32).to(device)
     if cfg['loss'] == "NLL":
         criterion = torch.nn.NLLLoss(weight=weight) #()
+    # elif cfg['loss'] == "CAT":
+    #     criterion = torch.nn.CategoricalCrossEntropyLoss(weight=weight)
     else:
         criterion = torch.nn.CrossEntropyLoss(weight=weight) #NLLLoss()
 
@@ -66,16 +82,18 @@ if __name__ == '__main__':
     # test_files = names[train_test_split:]
     train_loader = DataLoader(train_dataset, shuffle=True)
     test_loader = DataLoader(test_dataset, shuffle=False)
-    #breakpoint()
+    # breakpoint()
 
     model.train()
+    best_loss = 1
+    model_name_save = f"{model_name}_trained_on_{base_name}_using_loss{cfg['loss']}_for{EPOCHS}epochs.pth"
 
     for epoch in range(1, EPOCHS):
         # loss = training_loop_one_epoch(model, train_loader, criterion, optimizer, device)
         for data in train_loader:  # Iterate in batches over the training dataset.
             data.to(device)
             out = model(data.x, data.edge_index)  # Perform a single forward pass.
-            loss = criterion(out, data.y-1)  # Compute the loss.
+            loss = criterion(out, data.y)  # Compute the loss.
             loss.backward()  # Derive gradients.
             optimizer.step()  # Update parameters based on gradients.
             optimizer.zero_grad()  # Clear gradients.
@@ -85,12 +103,16 @@ if __name__ == '__main__':
         if epoch % cfg['print_each'] == 0:
             #pdb.set_trace()
             print(f'Epoch: {epoch:03d}, Loss: {loss:.4f}')
+            
+        if loss.item() < best_loss:
+            torch.save(model.state_dict(), os.path.join(cfg['models_path'], f"{model_name_save}_BEST.pth"))
 
-    torch.save(model.state_dict(), os.path.join(cfg['models_path'], f"{model_name}_loss{cfg['loss']}_{EPOCHS}epochs.pth"))
-    shutil.copy('config.yaml', os.path.join(cfg['models_path'], f"{model_name}_loss{cfg['loss']}_{EPOCHS}epochs_config.yaml"))
-    print(f"saved {model_name}_loss{cfg['loss']}_{EPOCHS}epochs")
+    base_name = cfg['dataset_root'].split('/')[-1]
+    torch.save(model.state_dict(), os.path.join(cfg['models_path'], model_name_save))
+    shutil.copy('config.yaml', os.path.join(cfg['models_path'], f"{model_name_save}_config.yaml"))
+    print(f"saved {model_name_save}")
     print(f"For inference, run\n")
-    print(f"python inference_fragment_detection.py {model_name}_loss{cfg['loss']}_{EPOCHS}epochs\n")
+    print(f"python inference_fragment_detection.py {model_name_save}")
     
     if cfg['show_results'] == True:
         print(f"showing {cfg['how_many']} results..")
@@ -99,6 +121,6 @@ if __name__ == '__main__':
         for j in range(0, 100, cfg['how_many']):
             pred = predict(model, dataset[j], device) # pred returned is already .cpy().numpy()
             pcl = o3d.geometry.PointCloud(points=o3d.utility.Vector3dVector(dataset[j].pos.cpu().numpy()))
-            show_results(pred, pcl)
+            show_results(pred, pcl, f"scene_{j}")
 
-        breakpoint()
+            breakpoint()

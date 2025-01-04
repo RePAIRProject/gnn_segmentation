@@ -1,18 +1,19 @@
-dataset_root: '/media/lucap/big_data/datasets/repair/3D_detection_moving_camera/group_0016'
+dataset_root: '/home/palma/repair/sand_scenes/group_0029' #'/media/lucap/big_data/datasets/repair/3D_detection_moving_camera/group_0016'
 models_path: 'checkpoints'
-dataset_max_size: 64
+dataset_max_size: 128
 train_test_split: 0.8
 num_seg_classes: 5
 k: 10
-use_color: False
-input_features: 3
-hidden_channels: 16
+use_color: True
+normalize_color: True
+input_features: 6
+hidden_channels: 64
 model: "GCN"
 loss: "CROSSENTROPY"
 # training
-epochs: 50
-print_each: 25
-lr: 0.01
+epochs: 10
+print_each: 10
+lr: 0.004
 weight_obj: 25
 show_results: True
 how_many: 10
