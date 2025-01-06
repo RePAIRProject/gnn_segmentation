@@ -118,13 +118,14 @@ if __name__ == '__main__':
     cfg['last_model_path'] = os.path.join(cfg['models_path'], model_name_save)
     cfg['best_model_path'] = os.path.join(cfg['models_path'], best_model_name)
 
-    with open(os.path.join(cfg['models_path'], f"{model_name_save}_config.yaml"), 'w') as yf:
+    res_cfg_path = os.path.join(cfg['models_path'], f"{model_name_save}_config.yaml")
+    with open(res_cfg_path, 'w') as yf:
         yaml.dump(cfg, yf)
         
     # shutil.copy(cfg_file_path, os.path.join(cfg['models_path'], f"{model_name_save}_config.yaml"))
     print(f"saved {model_name_save}")
     print(f"For inference, run:")
-    print(f"\npython inference_fragment_detection.py {model_name_save}\n")
+    print(f"\npython evaluate_sand_scene_network.py {res_cfg_path}\n")
     
     if cfg['show_results'] == True:
         print(f"showing {cfg['how_many']} results..")

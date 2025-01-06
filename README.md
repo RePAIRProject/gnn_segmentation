@@ -53,3 +53,17 @@ Here averaged is on the three files ("RPf_00097","RPf_00094","RPf_00103") used a
 
 ## Weak supervised segmentation
 The next approach to start with.
+
+
+## Workflow for 3D 
+
+Exploring two options
+
+### 1. Step by Step 
+- a. Detection (given a 3D scene, binary classification, `background` or `fragment`)
+- b. Recognition (assuming we have the database of 3D fragments)
+    - b1. Recognition as Retrieval (given a 3D fragment, find the *most similar* in the db)
+    - b2. Recognition as Classification (given a 3D fragment, classify it with its ID)
+
+### 2. End-to-end
+Train a network to directly *detect* and *classify* the objects (assign the correct IDs)

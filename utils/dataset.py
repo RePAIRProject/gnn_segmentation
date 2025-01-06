@@ -17,6 +17,58 @@ def pcl_to_tensor(pcl, k):
     data = edge_creator(data)
     return data
 
+def dataset_of_fragments(parameters):
+    """
+    It extracts fragments from each scene and 
+    create individual files in separate folders
+    used to create a classification database 
+    """
+    data_max_size = parameters['dataset_max_size']
+    points_folder = os.path.join(parameters['dataset_root'], 'points_as_txt')
+    labels_folder = os.path.join(parameters['dataset_root'], 'labels')
+    dataset = []
+    scenes = os.listdir(points_folder)
+    scenes.sort()
+    scenes = scenes[:data_max_size]
+    # fragments = {}
+    # for k in range(parameters['num_frags']):
+    #     fragments[f'{k+2}'] = []
+    for scene in scenes:
+        print(f"loading {scene}", end='\r')
+        scene_name = scene[:-4]
+        np_pts = np.loadtxt(os.path.join(points_folder, scene))
+        if parameters['add_noise'] == True:
+            z_range = np.max(np_pts[:,2]) - np.min(np_pts[:,2])
+            np_pts[:,2] += np.random.uniform(-1,1,np_pts.shape[0]) * parameters['noise_strength'] * z_range
+        np_labels = np.loadtxt(os.path.join(labels_folder, f"{scene_name}_labels.txt"))
+        labels = torch.tensor(np_labels, dtype=torch.long)
+        if parameters['use_normals'] == True:
+            pcl = o3d.geometry.PointCloud(points=o3d.utility.Vector3dVector(np_pts[:,:3]))
+            if parameters['use_normals'] == True:
+                if pcl.has_normals() == False:
+                    pcl.estimate_normals()
+                normals = np.asarray(pcl.normals)                     
+                np_pts = np.concatenate([np_pts, normals], axis=1)
+
+        # get the fragments
+        for val in np.unique(np_labels):
+            if val > 1:
+                frag = np_pts[np_labels==val]
+                # pcl = o3d.geometry.PointCloud(points=o3d.utility.Vector3dVector(frag[:,:3]))
+                # pcl.paint_uniform_color((0,0,1))
+                # o3d.visualization.draw_geometries([pcl])
+                # fragments[f'{int(val):d}'].append(frag)
+                pts = torch.tensor(np_pts, dtype=torch.float32)
+                # print(val, parameters['num_frags']+1)
+                y = F.one_hot(torch.tensor([val-1], dtype=torch.long), num_classes=parameters['num_frags']+1).type(torch.FloatTensor)
+                data = Data(x=pts, y=y, pos=pts[:, :3], edge_index=None, edge_attr=None)
+                # 3. compute edges (T.Knn)
+                edge_creator = T.KNNGraph(k=parameters['k'])
+                data = edge_creator(data)
+                dataset.append(data)
+        
+    return dataset
+            
 def dataset_v3(parameters):
     """
     It prepares the dataset for recognition 

@@ -13,7 +13,7 @@ if __name__ == '__main__':
     task = 'detection' # 'recognition' or 'detection'
     print("#" * 50)
     print(f"\nEvaluating fragment {task}\n")
-    cfg_file_path = os.path.join('checkpoints', sys.argv[1])
+    cfg_file_path = os.path.join(sys.argv[1])
     with open(cfg_file_path, 'r') as yf:
         cfg = yaml.safe_load(yf)
     
@@ -25,7 +25,6 @@ if __name__ == '__main__':
         test_dataset = pickle.load(test_set_file)
     print("#" * 50)
     print("Model")
-    print('model..')
     input_features = cfg['input_features']
     hidden_channels = cfg['hidden_channels']
     output_classes = cfg['num_seg_classes']
@@ -60,7 +59,7 @@ if __name__ == '__main__':
         num_pts = labels.shape[0]
         # breakpoint()
         accs.append((num_pts - np.sum(pred!=labels)) / labels.shape[0])
-        accs_frags.append((num_pts - np.sum((pred!=labels)*(labels==1))) / labels.shape[0])
+        accs_frags.append((num_pts - np.sum((pred!=labels)*(labels>0))) / labels.shape[0])
         accs_sand.append((num_pts - np.sum((pred!=labels)*(labels==0))) / labels.shape[0])
     
     print("\nFinal Results")
