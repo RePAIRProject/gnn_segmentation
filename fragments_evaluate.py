@@ -4,7 +4,7 @@ import open3d as o3d
 import torch 
 import pickle 
 from utils.train_test_util import predict, show_results
-from network.net import GCN, GAT, recognitionGCN
+from network.gnns import GCN, GAT, recognitionGCN
 from torch_geometric.loader import DataLoader
 import pandas as pd 
 import numpy as np 
@@ -16,7 +16,7 @@ if __name__ == '__main__':
     num_frags = 5
     num_classes = 6
     print("#" * 50)
-    print(f"\nTraining for {task}\n")
+    print(f"\nEvaluating for {task}\n")
     cfg_file_path = os.path.join(sys.argv[1])
     with open(cfg_file_path, 'r') as yf:
         cfg = yaml.safe_load(yf)
@@ -24,6 +24,7 @@ if __name__ == '__main__':
     # adjust for this group
     cfg['num_frags'] = num_frags
     cfg['num_seg_classes'] = num_classes
+    dataset_name = cfg['dataset_root'].split('/')[-2]
     cfg['dataset_root'] = os.path.join(cfg['dataset_root'], f'group_{group:04d}')
     cfg['batch_size'] = 1
 
@@ -31,8 +32,16 @@ if __name__ == '__main__':
     print(f"Using {device} to evaluate..")
     print("#" * 50)
     print('reading data..')
-    with open(os.path.join('data', f'group_{group}_fragments_{task}_test_set'), 'rb') as test_set_file: 
+    with open(os.path.join('data', f'group_{group}_fragments_{task}_test_set_from_{dataset_name}'), 'rb') as test_set_file: 
         test_dataset = pickle.load(test_set_file)
+
+    # # show data
+    # for k in range(0, 10):
+    #     pcl = o3d.geometry.PointCloud(points=o3d.utility.Vector3dVector(test_dataset[k].x[:,:3]))
+    #     pcl.paint_uniform_color((0,0,1))
+    #     name = f"object of class {int(test_dataset[k].y.argmax(dim=1))}"
+    #     o3d.visualization.draw_geometries([pcl], window_name = name)
+    # breakpoint()
     test_loader = DataLoader(test_dataset, batch_size=cfg['batch_size'], shuffle=True)
 
     print("#" * 50)
@@ -57,7 +66,8 @@ if __name__ == '__main__':
     else:
         print("WHICH MODEL?")
     model.to(device)
-    model.load_state_dict(torch.load(cfg['last_model_path'], weights_only=True))
+    # breakpoint()
+    model.load_state_dict(torch.load(cfg['last_model_path']))#, weights_only=True))
     
     print('-' * 40)
     print("evaluating..")
@@ -65,11 +75,13 @@ if __name__ == '__main__':
     correct = 0
     total = 0
     for data in test_loader:
+        data.to(device)
         out = model(data.x, data.edge_index, data.batch)  
         pred_class = out.argmax(dim=1)
         label_class = data.y.argmax(dim=1)
-        print(f"prediction: {pred_class} \n({out.detach().numpy()})")
-        print("correct class:", label_class)
+        print(f"predicted: {pred_class.item()} // correct: {label_class.item()} \n pred_values({out.cpu().detach().numpy()})")
+        # print("correct class:", label_class)
+        # breakpoint()
         total += 1
         if pred_class == label_class:
             correct += 1

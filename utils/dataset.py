@@ -31,8 +31,10 @@ def dataset_of_fragments(parameters):
     scenes.sort()
     scenes = scenes[:data_max_size]
     # fragments = {}
-    # for k in range(parameters['num_frags']):
-    #     fragments[f'{k+2}'] = []
+    
+    labels_count = {}
+    for k in range(parameters['num_frags']):
+        labels_count[k+1] = 0
     for scene in scenes:
         print(f"loading {scene}", end='\r')
         scene_name = scene[:-4]
@@ -56,19 +58,42 @@ def dataset_of_fragments(parameters):
                 frag = np_pts[np_labels==val]
                 # pcl = o3d.geometry.PointCloud(points=o3d.utility.Vector3dVector(frag[:,:3]))
                 # pcl.paint_uniform_color((0,0,1))
-                # o3d.visualization.draw_geometries([pcl])
+                # o3d.visualization.draw_geometries([pcl], window_name=f'Class {val-1}')
                 # fragments[f'{int(val):d}'].append(frag)
-                pts = torch.tensor(np_pts, dtype=torch.float32)
+                pts = torch.tensor(frag, dtype=torch.float32)
                 # print(val, parameters['num_frags']+1)
-                y = F.one_hot(torch.tensor([val-1], dtype=torch.long), num_classes=parameters['num_frags']+1).type(torch.FloatTensor)
+                # breakpoint()
+                label_val = int(val - 1)
+                y = F.one_hot(torch.tensor([label_val], dtype=torch.long), num_classes=parameters['num_frags']+1).type(torch.FloatTensor)
                 data = Data(x=pts, y=y, pos=pts[:, :3], edge_index=None, edge_attr=None)
                 # 3. compute edges (T.Knn)
                 edge_creator = T.KNNGraph(k=parameters['k'])
                 data = edge_creator(data)
                 dataset.append(data)
-        
+                labels_count[label_val] += 1
+    
+    print("\nSTATS")
+    for lck in labels_count.keys():
+        print("label", lck, ":", labels_count[lck], "objects")
     return dataset
-            
+
+def visualize_points(pos, edge_index=None, index=None):
+    fig = plt.figure(figsize=(4, 4))
+    if edge_index is not None:
+        for (src, dst) in edge_index.t().tolist():
+             src = pos[src].tolist()
+             dst = pos[dst].tolist()
+             plt.plot([src[0], dst[0]], [src[1], dst[1]], linewidth=1, color='black')
+    if index is None:
+        plt.scatter(pos[:, 0], pos[:, 1], s=50, zorder=1000)
+    else:
+       mask = torch.zeros(pos.size(0), dtype=torch.bool)
+       mask[index] = True
+       plt.scatter(pos[~mask, 0], pos[~mask, 1], s=50, color='lightgray', zorder=1000)
+       plt.scatter(pos[mask, 0], pos[mask, 1], s=50, zorder=1000)
+    plt.axis('off')
+    plt.show()
+
 def dataset_v3(parameters):
     """
     It prepares the dataset for recognition 

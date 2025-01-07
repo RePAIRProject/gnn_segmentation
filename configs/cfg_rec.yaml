@@ -1,11 +1,11 @@
-dataset_root: '/home/palma/repair/sand_scenes' #'/media/lucap/big_data/datasets/repair/3D_detection_moving_camera/group_0016'
+dataset_root: '/media/lucap/big_data/datasets/repair/sand_detection_dataset_bb_yolo_1000scenes' #'/media/lucap/big_data/datasets/repair/3D_detection_moving_camera/group_0016'
 models_path: 'checkpoints'
 # TASK 
 task: recognition
 # DATA 
-dataset_max_size: 128
+dataset_max_size: 1000
 train_test_split: 0.9
-k: 20
+k: 6
 add_noise: True
 noise_strength: 0.08
 # FEATURES
@@ -15,15 +15,15 @@ use_normals: True
 # MODEL dimensions
 model: "GCN"
 input_features: 9
-hidden_channels: 64
+hidden_channels: 256
 # num_seg_classes: 6
 # LOSS
 loss: "CAT"
 # training
-epochs: 4
-print_each: 1
-batch_size: 4
-lr: 0.004
+epochs: 300
+print_each: 10
+batch_size: 128
+lr: 0.001
 weight_obj: 25
 continue_training: False
 ckp_path: '' # set if continue == True!

@@ -17,11 +17,12 @@ class recognitionGCN(torch.nn.Module):
         # 1. Obtain node embeddings 
         x = self.conv1(x, edge_index)
         x = x.relu()
-        x = F.dropout(x, p=0.5, training=self.training)
+        x = F.dropout(x, p=0.0, training=self.training)
         x = self.conv2(x, edge_index)
         x = x.relu()
-        x = F.dropout(x, p=0.5, training=self.training)
+        x = F.dropout(x, p=0.0, training=self.training)
         x = self.conv3(x, edge_index)
+        x = x.relu()
 
         # 2. Readout layer
         x = global_mean_pool(x, batch)  # [batch_size, hidden_channels]
