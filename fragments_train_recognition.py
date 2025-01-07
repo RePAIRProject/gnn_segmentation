@@ -35,12 +35,15 @@ if __name__ == '__main__':
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     print(f"Using {device} to train..")
     print('reading data..')
-    training_set_path = os.path.join('data', f'group_{group}_fragments_{task}_training_set_from_{dataset_name}')
-    print('using training data in', training_set_path)
-    with open(training_set_path, 'rb') as training_set_file: 
-        train_dataset = pickle.load(training_set_file)
-    with open(os.path.join('data', f'group_{group}_fragments_{task}_test_set_from_{dataset_name}'), 'rb') as test_set_file: 
-        test_dataset = pickle.load(test_set_file)
+    # data/dataset_from_sand_detection_dataset_bb_yolo_1000scenes_group_29_fragments_recognition
+    dataset_path = os.path.join('data', f'dataset_from_{dataset_name}_group_{group}_fragments_{task}')
+    print('using training data in', dataset_path)
+    with open(os.path.join(dataset_path, 'training_set_split_1'), 'rb') as training_set_file: 
+        training_set = pickle.load(training_set_file)
+    with open(os.path.join(dataset_path, 'validation_set_split_1'), 'rb') as valid_set_file: 
+        validation_set = pickle.load(valid_set_file)
+    with open(os.path.join(dataset_path, 'test_set_split_1'), 'rb') as test_set_file: 
+        test_set = pickle.load(test_set_file)
 
     # show data
     # for k in range(0, 10):
@@ -95,8 +98,9 @@ if __name__ == '__main__':
     test_acc = 0.0
     acc_intact = 0.0
     acc_broken = 0.0
-    train_loader = DataLoader(train_dataset, batch_size=cfg['batch_size'], shuffle=True)
-    test_loader = DataLoader(test_dataset, batch_size=cfg['batch_size'], shuffle=False)
+    train_loader = DataLoader(training_set, batch_size=cfg['batch_size'], shuffle=True)
+    valid_loader = DataLoader(validation_set, batch_size=cfg['batch_size'], shuffle=True)
+    test_loader = DataLoader(test_set, batch_size=cfg['batch_size'], shuffle=False)
 
     if cfg['continue_training'] == True:
         cnt = "continuation"
@@ -107,7 +111,8 @@ if __name__ == '__main__':
     model_name_save = f"fragment-{task}-net_{model_name}-based_trained_on_{dataset_name}-group_{group:04d}_using_loss{cfg['loss']}_for{EPOCHS}epochs_{cnt}_bs_{cfg['batch_size']}"
     os.makedirs(os.path.join(cfg['models_path'], model_name_save), exist_ok=True)
     best_model_name = ""
-    
+    valid_acc_threshold = 0
+    nothing_happening = 0
     # TRAINING
     model.train()
     for epoch in range(0, EPOCHS):
@@ -129,12 +134,37 @@ if __name__ == '__main__':
             correct += int((pred == label_class).sum())  # Check against ground-truth labels.
         # print(loss.item())
 
-        if (epoch+1) % cfg['print_each'] == 0:
-            print(f'Epoch: {(epoch+1):03d}, Loss: {(losses / len(train_loader.dataset)):.4f}, Acc: {(correct / len(train_loader.dataset)):.4f}')
-            
+        if (epoch+1) % cfg['evaluate_and_print_each'] == 0:
+            print("#" * 50)
+            print("EVALUATION")
+            print(f'Epoch: {(epoch+1):03d}, Loss: {(losses / len(train_loader.dataset)):.4f}')
+            vcorrect = 0
+            for vdata in valid_loader:
+                data.to(device)
+                out = model(data.x, data.edge_index, data.batch)    # Perform a single forward pass.
+                loss = criterion(out, data.y)                       # Compute the loss.
+                losses+=loss                            
+                loss.backward()                                     # Derive gradients.
+                optimizer.step()                                    # Update parameters based on gradients.
+                optimizer.zero_grad()                               # Clear gradients.
+                pred = out.argmax(dim=1)
+                label_class = data.y.argmax(dim=1)
+                vcorrect += int((pred == label_class).sum())  # Check against ground-truth labels.
+                valid_acc = (vcorrect / len(valid_loader.dataset))
+            print(f'Train Acc: {(correct / len(train_loader.dataset)):.4f}, Valid Acc: {valid_acc:.4f}')
+            if valid_acc > valid_acc_threshold:
+                valid_acc_threshold = valid_acc
+                nothing_happening = 0
+            else:
+                nothing_happening += 1
+            #print(nothing_happening)
+        if nothing_happening > cfg['patience']:
+            print("early stopping!")
+            #breakpoint()
+            break
         if loss.item() < best_loss:
             torch.save(model.state_dict(), os.path.join(cfg['models_path'], model_name_save, 'best.pth'))
-    
+    print("#" * 50)
     torch.save(model.state_dict(), os.path.join(cfg['models_path'], model_name_save, 'last.pth'))
     
     cfg['dataset_name'] = dataset_name

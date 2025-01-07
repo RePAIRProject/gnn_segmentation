@@ -2,8 +2,8 @@ dataset_root: '/media/lucap/big_data/datasets/repair/sand_detection_dataset_bb_y
 models_path: 'checkpoints'
 # TASK 
 task: recognition
-group: 15
-num_classes: 17
+group: 29
+num_classes: 5
 # DATA 
 train_split: 0.8
 val_split: 0.1
@@ -24,10 +24,11 @@ hidden_channels: 256
 # LOSS
 loss: "CAT"
 # training
-epochs: 600
-print_each: 10
+epochs: 2000
+evaluate_and_print_each: 10
 batch_size: 128
 lr: 0.0005
+patience: 100
 weight_obj: 25
 continue_training: False
 ckp_path: '' # set if continue == True!
