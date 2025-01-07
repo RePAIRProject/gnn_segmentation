@@ -14,9 +14,7 @@ import pickle
 if __name__ == '__main__':
 
     task = 'recognition' # 'recognition' or 'detection'
-    group = 29
-    num_frags = 5
-    num_classes = 6
+    
     print("#" * 50)
     print(f"\nTraining for {task}\n")
     cfg_file_path = os.path.join('configs', f'cfg_{task[:3]}.yaml')
@@ -24,8 +22,7 @@ if __name__ == '__main__':
         cfg = yaml.safe_load(yf)
     
     # adjust for this group
-    cfg['num_frags'] = num_frags
-    cfg['num_seg_classes'] = num_classes
+    group = cfg['group']
     dataset_name = cfg['dataset_root'].split('/')[-1]
     cfg['dataset_root'] = os.path.join(cfg['dataset_root'], f'group_{group:04d}')
     print("#" * 50)
@@ -56,7 +53,7 @@ if __name__ == '__main__':
     print('model..')
     input_features = cfg['input_features']
     hidden_channels = cfg['hidden_channels']
-    output_classes = cfg['num_seg_classes']
+    output_classes = cfg['num_classes']
     model_name = cfg['model']
     print(f"{model_name} Model with: \
           {input_features} input features, \
@@ -78,17 +75,18 @@ if __name__ == '__main__':
 
     optimizer = torch.optim.Adam(
         model.parameters(), lr=cfg['lr'], weight_decay=5e-4)
+
+    # WEIGHTS (for imbalanced datasets)
     if cfg['task'] == 'detection':
         weight = torch.tensor([1, cfg['weight_obj']], dtype=torch.float32).to(device)
     elif cfg['task'] == 'recognition':
-        weights = np.ones((cfg['num_frags']+1)) * cfg['weight_obj']
+        weights = np.ones((cfg['num_classes'])) * cfg['weight_obj']
         # weights[0] /= 5
         weight = torch.tensor(weights, dtype=torch.float32).to(device)
-        criterion = torch.nn.CrossEntropyLoss()
+
+    # LOSS
     if cfg['loss'] == "NLL":
         criterion = torch.nn.NLLLoss(weight=weight) #()
-    # elif cfg['loss'] == "CAT":
-    #     criterion = torch.nn.CategoricalCrossEntropyLoss(weight=weight)
     else:
         criterion = torch.nn.CrossEntropyLoss() #NLLLoss()
 
@@ -105,11 +103,12 @@ if __name__ == '__main__':
         model.load_state_dict(torch.load(cfg['ckp_path'], weights_only=True))
     else:
         cnt = 'from_scratch'
-    best_loss = 1
-    base_name = cfg['dataset_root'].split('/')[-1]
-    
-    model_name_save = f"fragment-{task}-net_{model_name}-based_trained_on_{base_name}_using_loss{cfg['loss']}_for{EPOCHS}epochs_{cnt}_bs_{cfg['batch_size']}"
+    best_loss = 1    
+    model_name_save = f"fragment-{task}-net_{model_name}-based_trained_on_{dataset_name}-group_{group:04d}_using_loss{cfg['loss']}_for{EPOCHS}epochs_{cnt}_bs_{cfg['batch_size']}"
+    os.makedirs(os.path.join(cfg['models_path'], model_name_save), exist_ok=True)
     best_model_name = ""
+    
+    # TRAINING
     model.train()
     for epoch in range(0, EPOCHS):
         correct = 0
@@ -119,15 +118,12 @@ if __name__ == '__main__':
             data.to(device)
             # print(model, data)
             out = model(data.x, data.edge_index, data.batch)    # Perform a single forward pass.
-            loss = criterion(out, data.y)   
-            losses+=loss        # Compute the loss.
-            loss.backw    # pcl = o3d.geometry.PointCloud(points=o3d.utility.Vector3dVector(frag[:,:3]))
-                # pcl.paint_uniform_color((0,0,1))
-                # o3d.visualization.draw_geometries([pcl], window_name=f'Class {val-1}')ard()                         
-                # # Derive gradients.
-            optimizer.step()                        # Update parameters based on gradients.
-            optimizer.zero_grad()                   # Clear gradients.
-            pred = out.argmax(dim=1)  # Use the class with highest probability.
+            loss = criterion(out, data.y)                       # Compute the loss.
+            losses+=loss                            
+            loss.backward()                                     # Derive gradients.
+            optimizer.step()                                    # Update parameters based on gradients.
+            optimizer.zero_grad()                               # Clear gradients.
+            pred = out.argmax(dim=1)                            # Use the class with highest probability.
             # print(out)
             label_class = data.y.argmax(dim=1)
             correct += int((pred == label_class).sum())  # Check against ground-truth labels.
@@ -137,25 +133,23 @@ if __name__ == '__main__':
             print(f'Epoch: {(epoch+1):03d}, Loss: {(losses / len(train_loader.dataset)):.4f}, Acc: {(correct / len(train_loader.dataset)):.4f}')
             
         if loss.item() < best_loss:
-            best_model_name = f"{model_name_save}_BEST_after_{epoch+1}_epochs"
-            torch.save(model.state_dict(), os.path.join(cfg['models_path'], best_model_name))
+            torch.save(model.state_dict(), os.path.join(cfg['models_path'], model_name_save, 'best.pth'))
     
-    torch.save(model.state_dict(), os.path.join(cfg['models_path'], model_name_save))
+    torch.save(model.state_dict(), os.path.join(cfg['models_path'], model_name_save, 'last.pth'))
     
-    cfg['base_name'] = base_name
-    cfg['model_name_save'] = model_name_save
-    cfg['best_model_name'] = best_model_name
-    cfg['last_model_path'] = os.path.join(cfg['models_path'], model_name_save)
-    cfg['best_model_path'] = os.path.join(cfg['models_path'], best_model_name)
+    cfg['dataset_name'] = dataset_name
+    cfg['model_folder'] = model_name_save
+    cfg['last_model_path'] = os.path.join(cfg['models_path'], model_name_save, 'last.pth')
+    cfg['best_model_path'] = os.path.join(cfg['models_path'], best_model_name, 'best.pth')
 
-    res_cfg_path = os.path.join(cfg['models_path'], f"{model_name_save}_config.yaml")
+    res_cfg_path = os.path.join(cfg['models_path'], model_name_save, 'config.yaml')
     with open(res_cfg_path, 'w') as yf:
         yaml.dump(cfg, yf)
         
     # shutil.copy(cfg_file_path, os.path.join(cfg['models_path'], f"{model_name_save}_config.yaml"))
     print(f"saved {model_name_save}")
     print(f"For inference, run:")
-    print(f"\npython evaluate_fragment_recognition.py {res_cfg_path}\n")
+    print(f"\npython fragments_evaluate.py {res_cfg_path}\n")
     
     if cfg['show_results'] == True:
         print(f"showing {cfg['how_many']} results..")
@@ -164,6 +158,7 @@ if __name__ == '__main__':
         # idx_to_show = np.linspace(0, len(test_dataset)-1, cfg['how_many']).astype(int)
         counter = 0
         for data in test_loader:
+            counter += 1
             if counter > cfg['how_many']:
                 continue
             data.to(device)
@@ -171,9 +166,9 @@ if __name__ == '__main__':
             pred_class = out.argmax(dim=1)
             label_class = data.y.argmax(dim=1)
             print('-' * 40)
-            print(f"Prediction for scene {j}:")
-            print(pred, '\nclass:', pred_class)
-            print("correct class:", label_class)
+            for pc, cl in zip(pred_class, label_class): 
+                print("predicted:", pc.item(), "correct:", cl.item())
+            # print(f"predicted: {pred_class.item()} // correct: {label_class.item()} \n pred_values({out.cpu().detach().numpy()})")
             # pcl = o3d.geometry.PointCloud(points=o3d.utility.Vector3dVector(test_dataset[j].pos.cpu().numpy()))
             # print('pred')
             # show_results(pred, pcl, window_name=f"Prediction Scene {j}")

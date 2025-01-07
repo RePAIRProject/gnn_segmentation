@@ -23,18 +23,18 @@ def dataset_of_fragments(parameters):
     create individual files in separate folders
     used to create a classification database 
     """
-    data_max_size = parameters['dataset_max_size']
+    # data_max_size = parameters['dataset_max_size']
     points_folder = os.path.join(parameters['dataset_root'], 'points_as_txt')
     labels_folder = os.path.join(parameters['dataset_root'], 'labels')
     dataset = []
     scenes = os.listdir(points_folder)
     scenes.sort()
-    scenes = scenes[:data_max_size]
+    # scenes = scenes[:data_max_size]
     # fragments = {}
     
     labels_count = {}
-    for k in range(parameters['num_frags']):
-        labels_count[k+1] = 0
+    for k in range(parameters['num_classes']):
+        labels_count[k] = 0
     for scene in scenes:
         print(f"loading {scene}", end='\r')
         scene_name = scene[:-4]
@@ -63,8 +63,8 @@ def dataset_of_fragments(parameters):
                 pts = torch.tensor(frag, dtype=torch.float32)
                 # print(val, parameters['num_frags']+1)
                 # breakpoint()
-                label_val = int(val - 1)
-                y = F.one_hot(torch.tensor([label_val], dtype=torch.long), num_classes=parameters['num_frags']+1).type(torch.FloatTensor)
+                label_val = int(val - 2)
+                y = F.one_hot(torch.tensor([label_val], dtype=torch.long), num_classes=parameters['num_classes']).type(torch.FloatTensor)
                 data = Data(x=pts, y=y, pos=pts[:, :3], edge_index=None, edge_attr=None)
                 # 3. compute edges (T.Knn)
                 edge_creator = T.KNNGraph(k=parameters['k'])
