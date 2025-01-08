@@ -19,12 +19,7 @@ if __name__ == '__main__':
     with open(cfg_file_path, 'r') as yf:
         cfg = yaml.safe_load(yf)
     
-    print("#" * 50)
-    print("# PARAMETERS")
-    print("#" * 50)
-    for cfg_key in cfg.keys():
-        print(f"# {cfg_key}:{cfg[cfg_key]}")
-    print("#" * 50)
+    print_parameters(cfg)
     
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     print(f"Using {device} to train..")
@@ -32,7 +27,7 @@ if __name__ == '__main__':
     dataset_name = cfg['dataset_root'].split('/')[-1]
     dataset_path = os.path.join('data', f'dataset_from_{dataset_name}_for_{task}_xyzrgb')
     print('using training data in', dataset_path)
-    split_num = 5
+    split_num = cfg['split']
     with open(os.path.join(dataset_path, f'training_set_split_{split_num}'), 'rb') as training_set_file: 
         training_set = pickle.load(training_set_file)
     with open(os.path.join(dataset_path, f'validation_set_split_{split_num}'), 'rb') as valid_set_file: 
@@ -135,6 +130,7 @@ if __name__ == '__main__':
             pred = out.argmax(dim=1)                            # Use the class with highest probability.
             label_class = data.y.argmax(dim=1)
             correct += ((pred == label_class).sum() / out.shape[0]).item()
+            print(f"got {correct} correct out of {out.shape[0]}")
 
         if (epoch+1) % cfg['evaluate_and_print_each'] == 0:
             print("_" * 65)
@@ -211,7 +207,7 @@ if __name__ == '__main__':
     # shutil.copy(cfg_file_path, os.path.join(cfg['models_path'], f"{model_name_save}_config.yaml"))
     print(f"saved {model_name_save}")
     print(f"For inference, run:")
-    print(f"\npython sand_scene_evaluate.py {res_cfg_path}\n")
+    print(f"\npython sand_scene_evaluate_detection.py {res_cfg_path}\n")
     
     if cfg['show_results'] == True:
         print(f"showing {cfg['how_many']} results..")

@@ -29,9 +29,9 @@ def show_data(set, num_examples):
     for k in examples_ids:
         pcl = o3d.geometry.PointCloud(points=o3d.utility.Vector3dVector(set[k].x[:,:3]))
         pcl.paint_uniform_color((0,0,1))
-        name = f"example {k}: object of class {int(set[k].y.argmax(dim=1))}"
+        name = f"scene {k}"#: object of class {int(set[k].y.argmax(dim=1).item())}"
         o3d.visualization.draw_geometries([pcl], window_name = name)
-    # breakpoint()
+    breakpoint()
 
 def print_parameters(cfg):
     print("#" * 50)

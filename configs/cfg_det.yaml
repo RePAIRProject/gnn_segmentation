@@ -9,6 +9,7 @@ train_split: 0.8
 val_split: 0.1
 test_split: 0.1
 k: 10
+split: 5
 # noise pre-process 
 add_preprocessing_noise: True
 preprocessing_noise_strength: 0.12
@@ -31,7 +32,7 @@ save_scripted_model: False
 # LOSS
 loss: "CAT"
 # training
-epochs: 15
+epochs: 10
 evaluate_and_print_each: 3
 batch_size: 1
 lr: 0.002
