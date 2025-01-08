@@ -111,9 +111,9 @@ def dataset_v3(parameters):
         print(f"loading {scene}", end='\r')
         scene_name = scene[:-4]
         np_pts = np.loadtxt(os.path.join(points_folder, scene))
-        if parameters['add_noise'] == True:
+        if parameters['add_preprocessing_noise'] == True:
             z_range = np.max(np_pts[:,2]) - np.min(np_pts[:,2])
-            np_pts[:,2] += np.random.uniform(-1,1,np_pts.shape[0]) * parameters['noise_strength'] * z_range
+            np_pts[:,2] += np.random.uniform(-1,1,np_pts.shape[0]) * parameters['preprocessing_noise_strength'] * z_range
         # breakpoint()
         # pcl = o3d.geometry.PointCloud(points=o3d.utility.Vector3dVector(np_pts[:,:3]))
         # pcl.colors=o3d.utility.Vector3dVector(np_pts[:,3:] / 256)

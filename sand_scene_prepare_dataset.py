@@ -31,7 +31,21 @@ if __name__ == '__main__':
     test_dataset = test_dataset_15 + test_dataset_29
     # SAVE 
     print("Saving..")
-    with open(os.path.join('data', f'{task}_sand_training_set'), 'wb') as file: 
-        pickle.dump(train_dataset, file)
-    with open(os.path.join('data', f'{task}_sand_test_set'), 'wb') as file: 
-        pickle.dump(test_dataset, file)
+    dataset_name = dataset_root.split('/')[-1]
+    dataset_folder = os.path.join('data', f'dataset_from_{dataset_name}_for_{task}_xyzrgb')
+    os.makedirs(dataset_folder, exist_ok=True)
+    for i in range(cfg['num_splits']):
+        shuffle(dataset)
+        training_set = dataset[:train_test_split]
+        test_set = dataset[train_test_split:]
+        # SAVE 
+        print(f"Saving split {i+1}, training: {len(training_set)}, valid: {len(validation_set)}, test: {len(test_set)}..", end='\r')
+        with open(os.path.join(dataset_folder, f'training_set_split_{i+1}'), 'wb') as file: 
+            pickle.dump(training_set, file)
+        with open(os.path.join(dataset_folder, f'test_set_split_{i+1}'), 'wb') as file: 
+            pickle.dump(test_set, file)
+
+    # with open(os.path.join('data', f'{task}_sand_training_set'), 'wb') as file: 
+    #     pickle.dump(train_dataset, file)
+    # with open(os.path.join('data', f'{task}_sand_test_set'), 'wb') as file: 
+    #     pickle.dump(test_dataset, file)

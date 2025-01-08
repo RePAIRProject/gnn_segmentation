@@ -3,26 +3,32 @@ models_path: 'checkpoints'
 # TASK 
 task: detection
 # DATA 
-dataset_max_size: 128
+# dataset_max_size: 128
 train_test_split: 0.9
-k: 30
+k: 10
+# noise pre-process 
+add_preprocessing_noise: True
+preprocessing_noise_strength: 0.08
+# noise training
 add_noise: True
-noise_strength: 0.1
+noise_strength: 0.05
+num_splits: 10
 # FEATURES
 use_color: True
 normalize_color: True
-use_normals: True
+use_normals: False
 # MODEL dimensions
 model: "GCN"
-input_features: 9
+input_features: 6
 hidden_channels: 64
 num_seg_classes: 2
 # LOSS
 loss: "CAT"
 # training
-epochs: 40
+epochs: 200
 print_each: 3
-lr: 0.004
+batch_size: 128
+lr: 0.002
 weight_obj: 25
 continue_training: False
 ckp_path: '' # set if continue == True!

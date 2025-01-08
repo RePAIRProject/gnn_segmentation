@@ -28,7 +28,7 @@ if __name__ == '__main__':
     dataset = dataset_of_fragments(cfg)
     # SPLIT
     print("\nSplitting..")
-    dataset_folder = os.path.join('data', f'dataset_from_{dataset_name}_group_{group}_fragments_{task}')
+    dataset_folder = os.path.join('data', f'dataset_from_{dataset_name}_group_{group}_fragments_{task}_xyzrgb')
     os.makedirs(dataset_folder, exist_ok=True)
     train_split = np.round(len(dataset) * cfg['train_split']).astype(int)
     val_split = np.round(train_split + len(dataset) * cfg['val_split']).astype(int)
@@ -65,7 +65,7 @@ if __name__ == '__main__':
     dataset = dataset_of_fragments(cfg)
     # SPLIT
     print("\nSplitting..")
-    dataset_folder = os.path.join('data', f'dataset_from_{dataset_name}_group_{group}_fragments_{task}')
+    dataset_folder = os.path.join('data', f'dataset_from_{dataset_name}_group_{group}_fragments_{task}_xyzrgb')
     os.makedirs(dataset_folder, exist_ok=True)
     train_split = np.round(len(dataset) * cfg['train_split']).astype(int)
     val_split = np.round(train_split + len(dataset) * cfg['val_split']).astype(int)

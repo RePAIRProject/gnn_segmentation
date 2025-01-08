@@ -10,29 +10,30 @@ val_split: 0.1
 test_split: 0.1
 k: 6
 add_noise: True
-noise_strength: 0.08
+noise_strength: 0.5
 num_splits: 10
 # FEATURES
 use_color: True
 normalize_color: True
-use_normals: True
+use_normals: False
 # MODEL dimensions
 model: "GCN"
-input_features: 9
-hidden_channels: 256
+input_features: 6
+hidden_channels: 64
+dropout_rate: 0.5
 # num_seg_classes: 6
 # LOSS
 loss: "CAT"
 # training
-epochs: 2000
+epochs: 500
 evaluate_and_print_each: 10
 batch_size: 128
-lr: 0.0005
-patience: 100
+lr: 0.001
+patience: 30
 weight_obj: 25
 continue_training: False
 ckp_path: '' # set if continue == True!
 # VIS
 show_results: True
-how_many: 2
+how_many: 1
 
