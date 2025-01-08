@@ -33,6 +33,8 @@ patience: 30
 weight_obj: 25
 continue_training: False
 ckp_path: '' # set if continue == True!
+save_full_model: True
+save_scripted_model: False
 # VIS
 show_results: True
 how_many: 1

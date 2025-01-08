@@ -2,7 +2,7 @@ import numpy as np
 import torch 
 import open3d as o3d 
 import matplotlib.pyplot as plt
-from network.gnns import GCN, GAT, recognitionGCN
+from network.gnns import detectionGCN, GAT, recognitionGCN
 
 def get_loss(cfg, weight):
     # LOSS
@@ -48,9 +48,14 @@ def build_model(cfg):
                     hidden_channels=cfg['hidden_channels'],
                     output_classes=cfg['num_classes'])
     elif cfg['model'] == 'GCN':
-        model = recognitionGCN(input_features=cfg['input_features'],
+        if cfg['task'] == 'recognition':
+            model = recognitionGCN(input_features=cfg['input_features'],
                             hidden_channels=cfg['hidden_channels'],
                             output_classes=cfg['num_classes'], 
+                            dropout=cfg['dropout_rate'])
+        elif cfg['task'] == 'detection':
+            model = detectionGCN(input_features=cfg['input_features'],
+                            hidden_channels=cfg['hidden_channels'],
                             dropout=cfg['dropout_rate'])
     else:
         print("WHICH MODEL?")

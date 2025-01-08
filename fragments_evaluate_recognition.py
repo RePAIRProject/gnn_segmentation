@@ -94,6 +94,19 @@ if __name__ == '__main__':
     print('-' * 40)
     for lc in range(cfg['num_classes']):
         print(f"Class {lc}: {correct_per_class[lc]} / {total_per_class[lc]} ({(correct_per_class[lc]/total_per_class[lc]):.02f})")
+    
+    # full_model_path = os.path.join(cfg['models_path'], cfg['model_folder'], 'model.pt')
+    # if cfg['save_full_model'] == True and not os.path.exists(full_model_path):
+    #     torch.save(model, full_model_path)
+    
+    # # SCRIPTED
+    # scripted_model_path = os.path.join(cfg['models_path'], cfg['model_folder'], 'model_scripted.pt')
+    # if cfg['save_scripted_model'] == True and not os.path.exists(scripted_model_path):
+    #     model_scripted = torch.jit.script(model)
+    #     model_scripted.save(scripted_model_path)
+        # load with 
+        # model = torch.jit.load('model_scripted.pt')
+
     # for j, data_sample in enumerate(test_dataset):
     #     print(f"predicting and evaluating scene {j:04d}..", end="\r")
     #     pred = predict(model, data_sample, device) # pred returned is already .cpy().numpy()

@@ -94,19 +94,19 @@ def visualize_points(pos, edge_index=None, index=None):
     plt.axis('off')
     plt.show()
 
-def dataset_v3(parameters):
+def dataset_sand_scene(parameters):
     """
     It prepares the dataset for recognition 
     framed as multi-class labeling problem
     (0 for sand, id for the fragments (1,2,3,..) ) 
     """
-    data_max_size = parameters['dataset_max_size']
+    # data_max_size = parameters['dataset_max_size']
     points_folder = os.path.join(parameters['dataset_root'], 'points_as_txt')
     labels_folder = os.path.join(parameters['dataset_root'], 'labels')
     dataset = []
     scenes = os.listdir(points_folder)
     scenes.sort()
-    scenes = scenes[:data_max_size]
+    # scenes = scenes[:data_max_size]
     for scene in scenes:
         print(f"loading {scene}", end='\r')
         scene_name = scene[:-4]
@@ -140,6 +140,8 @@ def dataset_v3(parameters):
         # breakpoint()
         if parameters['task'] == 'recognition':
             oh_labels = F.one_hot(labels-1, num_classes=6).type(torch.FloatTensor) 
+        elif parameters['task'] == 'detection':
+            oh_labels = F.one_hot(labels, num_classes=2).type(torch.FloatTensor) 
          
         # transform into a torch tensor
         pts = torch.tensor(np_pts, dtype=torch.float32)
@@ -148,12 +150,12 @@ def dataset_v3(parameters):
             x[:,3:6] /= 256
         pos = x[:,:3]
         
-        if parameters['task'] == 'detection':
-            y = labels
-        elif parameters['task'] == 'recognition':
-            y = oh_labels
+        # if parameters['task'] == 'detection':
+        #     y = labels
+        # elif parameters['task'] == 'recognition':
+        #     y = oh_labels
 
-        data = Data(x=x[:], y=y, pos=pos[:], edge_index=None, edge_attr=None)
+        data = Data(x=x[:], y=oh_labels, pos=pos[:], edge_index=None, edge_attr=None)
         # 3. compute edges (T.Knn)
         edge_creator = T.KNNGraph(k=parameters['k'])
         data = edge_creator(data)
