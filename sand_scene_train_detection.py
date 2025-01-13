@@ -130,7 +130,7 @@ if __name__ == '__main__':
             pred = out.argmax(dim=1)                            # Use the class with highest probability.
             label_class = data.y.argmax(dim=1)
             correct += ((pred == label_class).sum() / out.shape[0]).item()
-            print(f"got {correct} correct out of {out.shape[0]}")
+            # print(f"got {correct} correct out of {out.shape[0]}")
 
         if (epoch+1) % cfg['evaluate_and_print_each'] == 0:
             print("_" * 65)
