@@ -92,7 +92,8 @@ if __name__ == '__main__':
 
     print('recognition model')
     recognition_model_g15 = recognitionGCN(6, 64, 17, 0.5)
-    weights_dict = torch.load(g15_recognition_model_weights, map_location=device)
+    g15_weights_dict = torch.load(g15_recognition_model_weights, map_location=device)
+    recognition_model_g15.load_state_dict(state_dict=g15_weights_dict)
     recognition_model_g15.eval()
     # recognition_model_g29 = recognitionGCN(6, 64, 17, 0.5)
     # weights_dict = torch.load(g29_recognition_model_weights, map_location=device)

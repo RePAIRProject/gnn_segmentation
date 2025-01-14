@@ -1,6 +1,6 @@
 import os 
 import yaml 
-from utils.dataset import dataset_v3, dataset_of_fragments
+from utils.dataset import dataset_of_fragments
 import numpy as np
 import pickle 
 from random import shuffle

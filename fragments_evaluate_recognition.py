@@ -67,7 +67,7 @@ if __name__ == '__main__':
         print("WHICH MODEL?")
     model.to(device)
     # breakpoint()
-    model.load_state_dict(torch.load(cfg['last_model_path']))#, weights_only=True))
+    model.load_state_dict(torch.load(cfg['last_model_path'], map_location=device))#, weights_only=True))
     
     print('-' * 40)
     print("evaluating..")
