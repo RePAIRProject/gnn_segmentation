@@ -5,7 +5,7 @@ from torch.nn import Linear, Sigmoid
 
 class recognitionGCN(torch.nn.Module):
 
-    def __init__(self, input_features, hidden_channels, output_classes, dropout):
+    def __init__(self, input_features, hidden_channels, output_classes, dropout=0.5):
         super().__init__()
 
         self.conv1 = GCNConv(input_features, hidden_channels)

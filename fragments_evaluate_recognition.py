@@ -77,6 +77,7 @@ if __name__ == '__main__':
     correct = 0
     total = 0
     for data in test_loader:
+        breakpoint()
         data.to(device)
         out = model(data.x, data.edge_index, data.batch)  
         pred_class = out.argmax(dim=1)

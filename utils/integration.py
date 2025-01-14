@@ -10,11 +10,16 @@ from torch_geometric.data import Data
 from torch_geometric.loader import DataLoader
 import yaml
 
-def torch_data_from_o3d_pcl(pcl, k):
+def torch_data_from_o3d_pcl(pcl, k, task):
     xyz = np.asarray(pcl.points)
     z_range = np.max(xyz, axis=1) - np.min(xyz, axis=1)
     # xyz[:, 2] += np.random.uniform(-1, 1, xyz.shape[0]) * z_range * 0.1
     rgb = np.asarray(pcl.colors)
+    if task == 'detection':
+        # colors are okay
+        rgb = rgb
+    elif task == 'recognition':
+        rgb *= 256
     # if normalize_color == True:
     #     rgb = rgb
     # breakpoint()
@@ -31,12 +36,12 @@ def recognize_objects(pcls, model, parameters, device):
     datas = []
     recognized_pcls = []
     unique_labels = np.unique(labels)
-    print(f"found {len(unique_labels)} opjects")
+    print(f"found {len(unique_labels)} objects")
     for label in unique_labels:
         idx_label = [idx for idx in ids if labels[idx] == label]
         pcl = pcls.select_by_index(idx_label)
         recognized_pcls.append(pcl)
-        datas.append(torch_data_from_o3d_pcl(pcl, parameters['k_rec']))        
+        datas.append(torch_data_from_o3d_pcl(pcl, parameters['k'], task='recognition'))        
     dataloader = DataLoader(datas, batch_size=1, shuffle=False)
     # breakpoint()
     pred_IDs = []
@@ -45,18 +50,18 @@ def recognize_objects(pcls, model, parameters, device):
         out = model(data.x, data.edge_index, data.batch)  
         pred_class = out.argmax(dim=1)
         pred_IDs.append(pred_class.item())
-        print("predicted", pred_class.item())
+        #print("predicted", pred_class.item())
             
     return recognized_pcls, pred_IDs
 
 
 def detect(pcl, detection_model, parameters, device, normalize_color=False, return_tensors=True, debug=False):
     
-    data = torch_data_from_o3d_pcl(pcl, parameters['k_det'])
+    data = torch_data_from_o3d_pcl(pcl, parameters['k'], task='detection')
     data.to(device)
     out = detection_model(data.x, data.edge_index)
     pred_class = out.argmax(dim=1).cpu().numpy()
-    show_results(pred_class, pcl)
+    # show_results(pred_class, pcl)
     # pred_2 = predict(detection_model, data, device)
     
     ids = np.linspace(0, out.shape[0]-1, out.shape[0]).astype(int)

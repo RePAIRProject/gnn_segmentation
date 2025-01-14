@@ -1,4 +1,4 @@
-dataset_root: "/home/palma/Unive/RePAIR/Datasets/RePAIR_dataset/sand_scenes"
+dataset_root: "/home/palma/Unive/RePAIR/Datasets/RePAIR_dataset/sand_scenes/sand_detection_dataset_bb_yolo_1000scenes"
 # '/media/lucap/big_data/datasets/repair/sand_detection_dataset_bb_yolo_1000scenes' 
 # '/home/palma/repair/sand_scenes' #'/media/lucap/big_data/datasets/repair/3D_detection_moving_camera/group_0016'
 models_path: 'checkpoints'
@@ -33,7 +33,7 @@ save_scripted_model: False
 # LOSS
 loss: "CAT"
 # training
-epochs: 5
+epochs: 7
 evaluate_and_print_each: 1
 batch_size: 1
 lr: 0.002
